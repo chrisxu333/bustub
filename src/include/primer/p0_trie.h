@@ -287,7 +287,7 @@ class Trie {
       if (i == key.length() - 1) {
         if (!(*tmp)->HasChild(key[i])) {
           std::unique_ptr<TrieNodeWithValue<T>> ending_node =
-              std::make_unique<TrieNodeWithValue<T>>(new TrieNodeWithValue<T>(key[i], value));
+              std::make_unique<TrieNodeWithValue<T>>(TrieNodeWithValue<T>(key[i], value));
           (*tmp)->InsertChildNode(key[i], std::move(ending_node));
         } else {
           std::unique_ptr<TrieNode> *cur = (*tmp)->GetChildNode(key[i]);
@@ -298,7 +298,7 @@ class Trie {
         }
       } else {
         if (!(*tmp)->HasChild(key[i])) {
-          std::unique_ptr<TrieNode> nxt = std::make_unique<TrieNode>(new TrieNode(key[i]));
+          std::unique_ptr<TrieNode> nxt = std::make_unique<TrieNode>(TrieNode(key[i]));
           (*tmp)->InsertChildNode(key[i], std::move(nxt));
         }
         tmp = (*tmp)->GetChildNode(key[i]);
