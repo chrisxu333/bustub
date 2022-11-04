@@ -250,7 +250,7 @@ class Trie {
    * @brief Construct a new Trie object. Initialize the root node with '\0'
    * character.
    */
-  Trie() { root_ = std::make_unique<TrieNode>(TrieNode('\0')); }
+  Trie() { root_ = std::make_unique<TrieNode>('\0'); }
 
   /**
    * @brief Insert key-value pair into the trie.
@@ -286,8 +286,7 @@ class Trie {
     for (size_t i = 0; i < key.length(); ++i) {
       if (i == key.length() - 1) {
         if (!(*tmp)->HasChild(key[i])) {
-          std::unique_ptr<TrieNodeWithValue<T>> ending_node =
-              std::make_unique<TrieNodeWithValue<T>>(TrieNodeWithValue<T>(key[i], value));
+          std::unique_ptr<TrieNode> ending_node = std::make_unique<TrieNodeWithValue<T>>(key[i], value);
           (*tmp)->InsertChildNode(key[i], std::move(ending_node));
         } else {
           std::unique_ptr<TrieNode> *cur = (*tmp)->GetChildNode(key[i]);
