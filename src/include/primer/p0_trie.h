@@ -19,9 +19,9 @@
 #include <utility>
 #include <vector>
 
+#include <shared_mutex>
 #include "common/exception.h"
 #include "common/rwlatch.h"
-#include <shared_mutex>
 
 namespace bustub {
 
@@ -36,9 +36,7 @@ class TrieNode {
    *
    * @param key_char Key character of this trie node
    */
-  explicit TrieNode(char key_char) {
-    key_char_ = key_char;
-  }
+  explicit TrieNode(char key_char) { key_char_ = key_char; }
 
   /**
    * @brief Move constructor for trie node object. The unique pointers stored
@@ -106,8 +104,12 @@ class TrieNode {
    * @return Pointer to unique_ptr of the inserted child node. If insertion fails, return nullptr.
    */
   std::unique_ptr<TrieNode> *InsertChildNode(char key_char, std::unique_ptr<TrieNode> &&child) {
-    if(children_.count(key_char) != 0) return nullptr;
-    if(child->GetKeyChar() != key_char) return nullptr;
+    if (children_.count(key_char) != 0) {
+      return nullptr;
+    }
+    if (child->GetKeyChar() != key_char) {
+      return nullptr;
+    }
     children_[key_char] = std::move(child);
     return &children_[key_char];
   }
@@ -121,7 +123,9 @@ class TrieNode {
    *         node does not exist.
    */
   std::unique_ptr<TrieNode> *GetChildNode(char key_char) {
-    if(children_.count(key_char) == 0) return nullptr;
+    if (children_.count(key_char) == 0) {
+      return nullptr;
+    }
     return &children_[key_char];
   }
 
@@ -132,7 +136,9 @@ class TrieNode {
    * @param key_char Key char of child node to be removed
    */
   void RemoveChildNode(char key_char) {
-    if(children_.count(key_char) == 0) return;
+    if (children_.count(key_char) == 0) {
+      return;
+    }
     children_.erase(key_char);
   }
 
@@ -226,14 +232,14 @@ class Trie {
   ReaderWriterLatch latch_;
   std::shared_mutex mutex_;
 
-  bool removeEmpty(std::unique_ptr<TrieNode> *cur, const std::string &key, size_t cur_idx, bool *success) {
-    if(cur_idx == key.length()) {
+  bool RemoveEmpty(std::unique_ptr<TrieNode> *cur, const std::string &key, size_t cur_idx, bool *success) {
+    if (cur_idx == key.length()) {
       *success = true;
       (*cur)->SetEndNode(false);
       return !(*cur)->HasChildren() && !(*cur)->IsEndNode();
     }
-    bool res = removeEmpty((*cur)->GetChildNode(key[cur_idx]),key, cur_idx + 1, success);
-    if(res) {
+    bool res = RemoveEmpty((*cur)->GetChildNode(key[cur_idx]), key, cur_idx + 1, success);
+    if (res) {
       (*cur)->RemoveChildNode(key[cur_idx]);
     }
     return !(*cur)->HasChildren() && !(*cur)->IsEndNode();
@@ -244,7 +250,7 @@ class Trie {
    * @brief Construct a new Trie object. Initialize the root node with '\0'
    * character.
    */
-  Trie(){ root_ = std::unique_ptr<TrieNode>(new TrieNode('\0')); };
+  Trie() { root_ = std::make_unique<TrieNode>(TrieNode('\0')); }
 
   /**
    * @brief Insert key-value pair into the trie.
@@ -272,24 +278,27 @@ class Trie {
    */
   template <typename T>
   bool Insert(const std::string &key, T value) {
-    if(key.empty()) return false;
+    if (key.empty()) {
+      return false;
+    }
     std::unique_lock lk(mutex_);
     std::unique_ptr<TrieNode> *tmp = &root_;
-    for(size_t i = 0; i < key.length(); ++i) {
-      if(i == key.length() - 1) {
-        if(!(*tmp)->HasChild(key[i])) {
-          std::unique_ptr<TrieNodeWithValue<T>> ending_node = std::unique_ptr<TrieNodeWithValue<T>>(new TrieNodeWithValue<T>(key[i], value));
-          (*tmp)->InsertChildNode(key[i],std::move(ending_node));
+    for (size_t i = 0; i < key.length(); ++i) {
+      if (i == key.length() - 1) {
+        if (!(*tmp)->HasChild(key[i])) {
+          std::unique_ptr<TrieNodeWithValue<T>> ending_node =
+              std::make_unique<TrieNodeWithValue<T>>(new TrieNodeWithValue<T>(key[i], value));
+          (*tmp)->InsertChildNode(key[i], std::move(ending_node));
         } else {
           std::unique_ptr<TrieNode> *cur = (*tmp)->GetChildNode(key[i]);
-          if((*cur)->IsEndNode()) return false;  // duplicate insertion
-          else {
-            (*cur) = std::make_unique<TrieNodeWithValue<T>>(std::move(*(*cur)), value);
+          if ((*cur)->IsEndNode()) {
+            return false;  // duplicate insertion
           }
+          (*cur) = std::make_unique<TrieNodeWithValue<T>>(std::move(*(*cur)), value);
         }
       } else {
-        if(!(*tmp)->HasChild(key[i])) {
-          std::unique_ptr<TrieNode> nxt = std::unique_ptr<TrieNode>(new TrieNode(key[i]));
+        if (!(*tmp)->HasChild(key[i])) {
+          std::unique_ptr<TrieNode> nxt = std::make_unique<TrieNode>(new TrieNode(key[i]));
           (*tmp)->InsertChildNode(key[i], std::move(nxt));
         }
         tmp = (*tmp)->GetChildNode(key[i]);
@@ -314,16 +323,20 @@ class Trie {
    * @return True if key exists and is removed, false otherwise
    */
   bool Remove(const std::string &key) {
-    if(key.empty()) return false;
+    if (key.empty()) {
+      return false;
+    }
     std::unique_lock lk(mutex_);
     std::unique_ptr<TrieNode> *tmp = &root_;
-    for(size_t i = 0; i < key.length(); ++i) {
-      if(!(*tmp)->HasChild(key[i])) return false;
-      tmp = (*tmp)->GetChildNode(key[i]);
+    for (char i : key) {
+      if (!(*tmp)->HasChild(i)) {
+        return false;
+      }
+      tmp = (*tmp)->GetChildNode(i);
     }
     tmp = &root_;
     bool success = false;
-    removeEmpty(tmp, key, 0, &success);
+    RemoveEmpty(tmp, key, 0, &success);
     return success;
   }
 
@@ -346,19 +359,23 @@ class Trie {
   template <typename T>
   T GetValue(const std::string &key, bool *success) {
     *success = false;
-    if(key.empty()) return {};
+    if (key.empty()) {
+      return {};
+    }
     std::shared_lock lk(mutex_);
     std::unique_ptr<TrieNode> *tmp = &root_;
-    for(size_t i = 0; i < key.length(); ++i) {
-      if(!(*tmp)->HasChild(key[i])) return {};
+    for (size_t i = 0; i < key.length(); ++i) {
+      if (!(*tmp)->HasChild(key[i])) {
+        return {};
+      }
       tmp = (*tmp)->GetChildNode(key[i]);
-      if(i == key.length() - 1) {
-        TrieNodeWithValue<T>* fake_terminal = dynamic_cast<TrieNodeWithValue<T>*>(&(*(*tmp)));
-        if(fake_terminal != nullptr) {
+      if (i == key.length() - 1) {
+        auto fake_terminal = dynamic_cast<TrieNodeWithValue<T> *>(&(*(*tmp)));
+        if (fake_terminal != nullptr) {
           *success = true;
           return fake_terminal->GetValue();
         }
-        else return {};
+        return {};
       }
     }
     return {};
