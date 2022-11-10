@@ -22,6 +22,7 @@
 #include <mutex>  // NOLINT
 #include <utility>
 #include <vector>
+#include <unordered_map>
 
 #include "container/hash/hash_table.h"
 
@@ -121,7 +122,7 @@ class ExtendibleHashTable : public HashTable<K, V> {
     /** @brief Increment the local depth of a bucket. */
     inline void IncrementDepth() { depth_++; }
 
-    inline auto GetItems() -> std::list<std::pair<K, V>> & { return list_; }
+    inline auto GetItems() -> std::unordered_map<K, V> & { return list_; }
 
     /**
      *
@@ -158,10 +159,11 @@ class ExtendibleHashTable : public HashTable<K, V> {
     auto Insert(const K &key, const V &value) -> bool;
 
    private:
-    // TODO(student): You may add additional private members and helper functions
     size_t size_;
     int depth_;
-    std::list<std::pair<K, V>> list_;
+    std::unordered_map<K, V> list_;
+    std::mutex latch_;
+    // std::list<std::pair<K, V>> list_;
   };
 
  private:
@@ -180,7 +182,9 @@ class ExtendibleHashTable : public HashTable<K, V> {
    * @brief Redistribute the kv pairs in a full bucket.
    * @param bucket The bucket to be redistributed.
    */
-  auto RedistributeBucket(std::shared_ptr<Bucket> bucket) -> void;
+  auto RedistributeBucket(size_t bucket_no) -> void;
+
+  auto Grow() -> void;
 
   /*****************************************************************
    * Must acquire latch_ first before calling the below functions. *
