@@ -38,6 +38,7 @@ BufferPoolManagerInstance::~BufferPoolManagerInstance() {
 }
 
 auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
+  std::unique_lock<std::mutex> lk(latch_);
   Page *new_page = nullptr;
   frame_id_t frame_id;
   if (!free_list_.empty()) {
@@ -87,6 +88,7 @@ auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
 }
 
 auto BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) -> Page * {
+  std::unique_lock<std::mutex> lk(latch_);
   Page *page = nullptr;
   frame_id_t frame_id;
   /* find existing page in buffer pool */
@@ -143,6 +145,7 @@ auto BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) -> Page * {
 }
 
 auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> bool {
+  std::unique_lock<std::mutex> lk(latch_);
   frame_id_t frame_id;
   bool status = page_table_->Find(page_id, frame_id);
   if (!status) { /* return false if page is not in buffer pool */
@@ -164,6 +167,7 @@ auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> 
 }
 
 auto BufferPoolManagerInstance::FlushPgImp(page_id_t page_id) -> bool {
+  std::unique_lock<std::mutex> lk(latch_);
   frame_id_t frame_id;
   bool status = page_table_->Find(page_id, frame_id);
   if (!status) { /* return false if page is not in buffer pool */
@@ -178,6 +182,7 @@ auto BufferPoolManagerInstance::FlushPgImp(page_id_t page_id) -> bool {
 }
 
 void BufferPoolManagerInstance::FlushAllPgsImp() {
+  std::unique_lock<std::mutex> lk(latch_);
   for (size_t i = 0; i < pool_size_; ++i) {
     Page *page = &pages_[i];
     disk_manager_->WritePage(page->GetPageId(), page->GetData());
@@ -187,6 +192,7 @@ void BufferPoolManagerInstance::FlushAllPgsImp() {
 
 auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
   frame_id_t frame_id;
+  std::unique_lock<std::mutex> lk(latch_);
   bool status = page_table_->Find(page_id, frame_id);
   if (!status) { /* return true if page is not in buffer pool */
     return true;
