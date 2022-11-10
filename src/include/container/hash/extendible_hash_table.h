@@ -20,9 +20,9 @@
 #include <list>
 #include <memory>
 #include <mutex>  // NOLINT
+#include <unordered_map>
 #include <utility>
 #include <vector>
-#include <unordered_map>
 
 #include "container/hash/hash_table.h"
 
@@ -146,9 +146,6 @@ class ExtendibleHashTable : public HashTable<K, V> {
     auto Remove(const K &key) -> bool;
 
     /**
-     *
-     * TODO(P1): Add implementation
-     *
      * @brief Insert the given key-value pair into the bucket.
      *      1. If a key already exists, the value should be updated.
      *      2. If the bucket is full, do nothing and return false.

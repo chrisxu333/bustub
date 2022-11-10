@@ -126,19 +126,18 @@ class LRUKReplacer {
 
  private:
   struct Info {
-    frame_id_t frame_id;
-    size_t access_time;
-    bool evictable;
-    Info(frame_id_t id) : frame_id(id), access_time(1), evictable(false){}
+    frame_id_t frame_id_;
+    size_t access_time_;
+    bool evictable_;
+    explicit Info(frame_id_t id) : frame_id_(id), access_time_(1), evictable_(false) {}
   };
-  size_t current_timestamp_{0};
   size_t curr_size_{0};
   size_t replacer_size_;
   size_t k_;
   std::mutex mutex_;
-  std::list<Info*> history_list_;
-  std::list<Info*> cache_list_;
-  std::unordered_map<frame_id_t, Info*> frame_lookup_;
+  std::list<Info *> history_list_;
+  std::list<Info *> cache_list_;
+  std::unordered_map<frame_id_t, Info *> frame_lookup_;
 };
 
 }  // namespace bustub

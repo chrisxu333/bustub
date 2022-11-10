@@ -16,6 +16,7 @@
 #include <mutex>  // NOLINT
 #include <unordered_map>
 
+#include <iostream>
 #include "buffer/buffer_pool_manager.h"
 #include "buffer/lru_k_replacer.h"
 #include "common/config.h"
@@ -54,8 +55,6 @@ class BufferPoolManagerInstance : public BufferPoolManager {
 
  protected:
   /**
-   * TODO(P1): Add implementation
-   *
    * @brief Create a new page in the buffer pool. Set page_id to the new page's id, or nullptr if all frames
    * are currently in use and not evictable (in another word, pinned).
    *
@@ -73,8 +72,6 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   auto NewPgImp(page_id_t *page_id) -> Page * override;
 
   /**
-   * TODO(P1): Add implementation
-   *
    * @brief Fetch the requested page from the buffer pool. Return nullptr if page_id needs to be fetched from the disk
    * but all frames are currently in use and not evictable (in another word, pinned).
    *
@@ -91,8 +88,6 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   auto FetchPgImp(page_id_t page_id) -> Page * override;
 
   /**
-   * TODO(P1): Add implementation
-   *
    * @brief Unpin the target page from the buffer pool. If page_id is not in the buffer pool or its pin count is already
    * 0, return false.
    *
@@ -106,8 +101,6 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   auto UnpinPgImp(page_id_t page_id, bool is_dirty) -> bool override;
 
   /**
-   * TODO(P1): Add implementation
-   *
    * @brief Flush the target page to disk.
    *
    * Use the DiskManager::WritePage() method to flush a page to disk, REGARDLESS of the dirty flag.
@@ -119,15 +112,11 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   auto FlushPgImp(page_id_t page_id) -> bool override;
 
   /**
-   * TODO(P1): Add implementation
-   *
    * @brief Flush all the pages in the buffer pool to disk.
    */
   void FlushAllPgsImp() override;
 
   /**
-   * TODO(P1): Add implementation
-   *
    * @brief Delete a page from the buffer pool. If page_id is not in the buffer pool, do nothing and return true. If the
    * page is pinned and cannot be deleted, return false immediately.
    *
@@ -143,14 +132,14 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   /** Number of pages in the buffer pool. */
   const size_t pool_size_;
   /** The next page id to be allocated  */
-  std::atomic<page_id_t> next_page_id_ = 0;
+  std::atomic<page_id_t> next_page_id_{0};
   /** Bucket size for the extendible hash table */
   const size_t bucket_size_ = 4;
 
   /** Array of buffer pool pages. */
   Page *pages_;
   /** Pointer to the disk manager. */
-  DiskManager *disk_manager_ __attribute__((__unused__));
+  DiskManager *disk_manager_;
   /** Pointer to the log manager. Please ignore this for P1. */
   LogManager *log_manager_ __attribute__((__unused__));
   /** Page table for keeping track of buffer pool pages. */
@@ -175,7 +164,5 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   void DeallocatePage(__attribute__((unused)) page_id_t page_id) {
     // This is a no-nop right now without a more complex data structure to track deallocated pages
   }
-
-  // TODO(student): You may add additional private members and helper functions
 };
 }  // namespace bustub
