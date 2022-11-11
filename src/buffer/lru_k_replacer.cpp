@@ -54,6 +54,9 @@ auto LRUKReplacer::Evict(frame_id_t *frame_id_) -> bool {
 }
 
 void LRUKReplacer::RecordAccess(frame_id_t frame_id_) {
+  if (static_cast<size_t>(frame_id_) > replacer_size_) {
+    throw std::invalid_argument("Invalid frame id");
+  }
   std::unique_lock<std::mutex> lk(mutex_);
   if (frame_lookup_.count(frame_id_) == 0) { /* first time access, insert into history list */
     Info *info = new Info(frame_id_);
@@ -76,15 +79,16 @@ void LRUKReplacer::RecordAccess(frame_id_t frame_id_) {
 }
 
 void LRUKReplacer::SetEvictable(frame_id_t frame_id_, bool set_evictable) {
+  if (static_cast<size_t>(frame_id_) > replacer_size_) {
+    throw std::invalid_argument("Invalid frame id");
+  }
   std::unique_lock<std::mutex> lk(mutex_);
-  if (frame_lookup_.count(frame_id_) == 1) {
+  if(frame_lookup_.count(frame_id_) == 1) {
     if (frame_lookup_[frame_id_]->evictable_ == set_evictable) {
       return;
     }
     curr_size_ = set_evictable ? curr_size_ + 1 : curr_size_ - 1;
     frame_lookup_[frame_id_]->evictable_ = set_evictable;
-  } else {
-    throw std::invalid_argument("Invalid frame id");
   }
 }
 
@@ -109,9 +113,6 @@ void LRUKReplacer::Remove(frame_id_t frame_id_) {
   }
 }
 
-auto LRUKReplacer::Size() -> size_t {
-  replacer_size_ = 0;
-  return curr_size_;
-}
+auto LRUKReplacer::Size() -> size_t { return curr_size_; }
 
 }  // namespace bustub
