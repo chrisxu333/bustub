@@ -37,7 +37,7 @@ auto ExtendibleHashTable<K, V>::IndexOf(const K &key) -> size_t {
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::GetGlobalDepth() const -> int {
-  std::scoped_lock<std::mutex> lock(latch_);
+  std::scoped_lock<std::recursive_mutex> lock(latch_);
   return GetGlobalDepthInternal();
 }
 
@@ -48,7 +48,7 @@ auto ExtendibleHashTable<K, V>::GetGlobalDepthInternal() const -> int {
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::GetLocalDepth(int dir_index) const -> int {
-  std::scoped_lock<std::mutex> lock(latch_);
+  std::scoped_lock<std::recursive_mutex> lock(latch_);
   return GetLocalDepthInternal(dir_index);
 }
 
@@ -59,7 +59,7 @@ auto ExtendibleHashTable<K, V>::GetLocalDepthInternal(int dir_index) const -> in
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::GetNumBuckets() const -> int {
-  std::scoped_lock<std::mutex> lock(latch_);
+  std::scoped_lock<std::recursive_mutex> lock(latch_);
   return GetNumBucketsInternal();
 }
 
@@ -71,20 +71,21 @@ auto ExtendibleHashTable<K, V>::GetNumBucketsInternal() const -> int {
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Find(const K &key, V &value) -> bool {
   size_t bucket_no = IndexOf(key);
-  std::unique_lock<std::mutex> lk(latch_);
+  std::unique_lock<std::recursive_mutex> lk(latch_);
   return dir_[bucket_no]->Find(key, value);
 }
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Remove(const K &key) -> bool {
   size_t bucket_no = IndexOf(key);
-  std::unique_lock<std::mutex> lk(latch_);
+  std::unique_lock<std::recursive_mutex> lk(latch_);
   return dir_[bucket_no]->Remove(key);
 }
 
 template <typename K, typename V>
 void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
   size_t bucket_no = IndexOf(key);
+  std::unique_lock<std::recursive_mutex> lk(latch_);
   bool status = dir_[bucket_no]->Insert(key, value);
   if (!status) {
     RedistributeBucket(bucket_no);
@@ -94,7 +95,6 @@ void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::RedistributeBucket(size_t bucket_no) -> void {
-  std::unique_lock<std::mutex> lk(latch_);
   auto bucket = dir_[bucket_no];
   std::unordered_map<K, V> bucket_data(bucket->GetItems().begin(), bucket->GetItems().end());
   bucket->GetItems().clear();
@@ -117,9 +117,7 @@ auto ExtendibleHashTable<K, V>::RedistributeBucket(size_t bucket_no) -> void {
     dir_[i] = dir_[other_idx];
   }
   for (auto it = bucket_data.begin(); it != bucket_data.end(); ++it) {
-    lk.unlock();
     Insert(it->first, it->second);
-    lk.lock();
   }
 }
 
@@ -139,7 +137,6 @@ ExtendibleHashTable<K, V>::Bucket::Bucket(size_t array_size, int depth) : size_(
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Bucket::Find(const K &key, V &value) -> bool {
-  std::unique_lock<std::mutex> lk(latch_);
   if (list_.count(key)) {
     value = list_[key];
     return true;
@@ -149,7 +146,6 @@ auto ExtendibleHashTable<K, V>::Bucket::Find(const K &key, V &value) -> bool {
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Bucket::Remove(const K &key) -> bool {
-  std::unique_lock<std::mutex> lk(latch_);
   if (list_.count(key)) {
     list_.erase(key);
     return true;
@@ -159,7 +155,6 @@ auto ExtendibleHashTable<K, V>::Bucket::Remove(const K &key) -> bool {
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Bucket::Insert(const K &key, const V &value) -> bool {
-  std::unique_lock<std::mutex> lk(latch_);
   if (list_.count(key)) {
     list_[key] = value;
     return true;
