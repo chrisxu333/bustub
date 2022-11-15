@@ -83,7 +83,7 @@ void LRUKReplacer::SetEvictable(frame_id_t frame_id_, bool set_evictable) {
     throw std::invalid_argument("Invalid frame id");
   }
   std::unique_lock<std::mutex> lk(mutex_);
-  if(frame_lookup_.count(frame_id_) == 1) {
+  if (frame_lookup_.count(frame_id_) == 1) {
     if (frame_lookup_[frame_id_]->evictable_ == set_evictable) {
       return;
     }

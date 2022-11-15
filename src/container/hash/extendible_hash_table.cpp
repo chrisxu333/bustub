@@ -37,7 +37,7 @@ auto ExtendibleHashTable<K, V>::IndexOf(const K &key) -> size_t {
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::GetGlobalDepth() const -> int {
-  std::scoped_lock<std::recursive_mutex> lock(latch_);
+  std::scoped_lock<std::mutex> lock(latch_);
   return GetGlobalDepthInternal();
 }
 
@@ -48,7 +48,7 @@ auto ExtendibleHashTable<K, V>::GetGlobalDepthInternal() const -> int {
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::GetLocalDepth(int dir_index) const -> int {
-  std::scoped_lock<std::recursive_mutex> lock(latch_);
+  std::scoped_lock<std::mutex> lock(latch_);
   return GetLocalDepthInternal(dir_index);
 }
 
@@ -59,7 +59,7 @@ auto ExtendibleHashTable<K, V>::GetLocalDepthInternal(int dir_index) const -> in
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::GetNumBuckets() const -> int {
-  std::scoped_lock<std::recursive_mutex> lock(latch_);
+  std::scoped_lock<std::mutex> lock(latch_);
   return GetNumBucketsInternal();
 }
 
@@ -71,25 +71,30 @@ auto ExtendibleHashTable<K, V>::GetNumBucketsInternal() const -> int {
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Find(const K &key, V &value) -> bool {
   size_t bucket_no = IndexOf(key);
-  std::unique_lock<std::recursive_mutex> lk(latch_);
+  std::unique_lock<std::mutex> lk(latch_);
   return dir_[bucket_no]->Find(key, value);
 }
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Remove(const K &key) -> bool {
   size_t bucket_no = IndexOf(key);
-  std::unique_lock<std::recursive_mutex> lk(latch_);
+  std::unique_lock<std::mutex> lk(latch_);
   return dir_[bucket_no]->Remove(key);
 }
 
 template <typename K, typename V>
 void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
+  std::unique_lock<std::mutex> lk(latch_);
+  RawInsert(key, value);
+}
+
+template <typename K, typename V>
+void ExtendibleHashTable<K, V>::RawInsert(const K &key, const V &value) {
   size_t bucket_no = IndexOf(key);
-  std::unique_lock<std::recursive_mutex> lk(latch_);
   bool status = dir_[bucket_no]->Insert(key, value);
   if (!status) {
     RedistributeBucket(bucket_no);
-    Insert(key, value);
+    RawInsert(key, value);
   }
 }
 
@@ -117,7 +122,7 @@ auto ExtendibleHashTable<K, V>::RedistributeBucket(size_t bucket_no) -> void {
     dir_[i] = dir_[other_idx];
   }
   for (auto it = bucket_data.begin(); it != bucket_data.end(); ++it) {
-    Insert(it->first, it->second);
+    RawInsert(it->first, it->second);
   }
 }
 
